@@ -2,6 +2,8 @@ import React from "react";
 import "./App.css";
 import Form from "./app_component/form.component";
 import Weather from "./app_component/weather.component";
+import PMButton from "./app_component/pm25.component";
+import PMDetail from "./app_component/pm25detail.component";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 // git project https://github.com/erikflowers/weather-icons
@@ -21,7 +23,9 @@ class App extends React.Component {
       temp_max: null,
       temp_min: null,
       description: "",
-      error: false
+      error: false,
+      predictions: [],
+      isLoaded: false,
     };
 
     this.weatherIcon = {
@@ -31,7 +35,7 @@ class App extends React.Component {
       Snow: "wi-snow",
       Atmosphere: "wi-fog",
       Clear: "wi-day-sunny",
-      Clouds: "wi-day-fog"
+      Clouds: "wi-day-fog",
     };
   }
 
@@ -68,7 +72,7 @@ class App extends React.Component {
     return cell;
   }
 
-  getWeather = async e => {
+  getWeather = async (e) => {
     e.preventDefault();
 
     const country = e.target.elements.country.value;
@@ -89,7 +93,7 @@ class App extends React.Component {
         temp_max: this.calCelsius(response.main.temp_max),
         temp_min: this.calCelsius(response.main.temp_min),
         description: response.weather[0].description,
-        error: false
+        error: false,
       });
 
       // seting icons
@@ -98,9 +102,31 @@ class App extends React.Component {
       console.log(response);
     } else {
       this.setState({
-        error: true
+        error: true,
       });
     }
+  };
+
+  getPM25 = async (e) => {
+    e.preventDefault();
+
+    const rawResponse = await fetch("http://localhost:5000/predict", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        country: "Thailand",
+        city: "Bangkok",
+      }),
+    });
+    const content = await rawResponse.json();
+    this.setState({
+      predictions: content.prediction,
+      isLoaded: true,
+    });
+    console.log(this.state.predictions.slice(24, 48));
   };
 
   render() {
@@ -115,10 +141,16 @@ class App extends React.Component {
           temp_min={this.state.temp_min}
           description={this.state.description}
         />
+        <PMButton loadPM25={this.getPM25} error={this.state.error} />
+        <PMDetail
+          day1={this.state.predictions.slice(0, 24)}
+          day2={this.state.predictions.slice(24, 48)}
+          day3={this.state.predictions.slice(48, 72)}
+          isLoaded={this.state.isLoaded}
+        />
       </div>
     );
   }
 }
 
 export default App;
-
